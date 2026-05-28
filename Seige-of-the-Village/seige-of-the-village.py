@@ -1,13 +1,3 @@
-#It’s...not really an adventure game...#Ver 1.0
-#Your village is being attacked by 'a germanic tribe' and you need to run to the stores and get the right things to save your village, and probably some good looking girl or boy you want to marry. All prices in gold pieces excl. VAT... chop chop!! ze germanz are coming!
-#The code should allow you to get 1 thing from each store and each item you get should be removed from the store inventory, then do same for next store...
-# one way to buy by typing the key 'newt' in an input box...or something
-# at end you should print the 'items' you have taken..in this version you don't have to pay for stuff or add it up
-#ver 1.2 add ability to exit a store without buying and go to next by typing 'exit', and to exit if a nonexistant item is bought(typed)
-#Add purse with 1000 gold pieces and payment for the items during or at end of code and show a message about total cost and how much gold you have left
-#ver 1.4 random bug fix, ' browser compatability', refactoring code... basically being lazy ..stop scrolling TikTok/Facebook! ;-)
-#Ver 1.5 print inventory before and after purchases as one department_store of stuff(combine inventories from all stores into one...pretend Big Biz bought all the local stores, and want constant reporting for inventory management...)
-# as in all games there is a special way to do this that actually makes money and solves the problem...can you find 'them'? Do you know why? May require knowledge of actual python 'lore'
 freelancers = {'name':'freelancing Shop','brian': 70, 'black knight':20, 'biccus diccus':100, 'grim reaper':500, 'minstrel':-15}
 antiques = {'name':'Antique Shop','french castle':400, 'wooden grail':3, 'scythe':150, 'catapult':75, 'german joke':5}
 pet_shop = {'name':'Pet Shop','blue parrot':10, 'white rabbit':5, 'newt': 2}
@@ -15,24 +5,36 @@ pet_shop = {'name':'Pet Shop','blue parrot':10, 'white rabbit':5, 'newt': 2}
 cart = {}
 purse = 1000
 stores = [freelancers, antiques, pet_shop]
-for store in stores:
-    print(f'Welcome to the {store['name']}! items for sale are: ')
-    for item in store:
+
+while True:
+    main_menu = input("Select a store to visit: 'freelancing shop'/'antique shop'/'pet shop': ")
+    selected_store = None
+    for store in stores:
+        if main_menu == store['name'].lower():
+            selected_store = store
+            print(f'Welcome to the {selected_store["name"]}! items for sale are: ')
+            break
+    else:
+        print('Sorry, that store is not available. Please select a valid store.')
+    for item in selected_store:
         if item == 'name':
             continue
-        print(item, ':', store[item])
+        print(item, ':', selected_store[item])
     while True:
         choice = input('What would you like to buy?(you can exit the store by typing "exit"): ')
-        if choice in store:
-            cart[choice] = store[choice]
-            del store[choice]
+        if choice in selected_store:
+            cart[choice] = selected_store[choice]
+            del selected_store[choice]
             print(f'You have added {choice} to your cart.')
             break
         elif choice == 'exit':
-            print(f'You have left the {store['name']}.')
+            print(f'You have left the {selected_store["name"]}.')
             break
         else:
             print('Sorry, that item is not available')
+    visit_again = input("Visit another store? (yes/no): ")
+    if visit_again == 'no':
+        break
 print(f'Your cart contains: {list(cart.keys())} ')
 total_cost = sum(cart.values())
 print(f'Total cost of your purchases is: {total_cost} gold pieces.')
