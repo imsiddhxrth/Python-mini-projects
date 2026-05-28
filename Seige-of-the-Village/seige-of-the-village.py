@@ -22,15 +22,18 @@ for store in stores:
             continue
         print(item, ':', store[item])
     while True:
-        choice = input('What would you like to buy?: ') 
+        choice = input('What would you like to buy?(you can exit the store by typing "exit"): ')
         if choice in store:
             cart[choice] = store[choice]
             del store[choice]
             print(f'You have added {choice} to your cart.')
             break
+        elif choice == 'exit':
+            print(f'You have left the {store['name']}.')
+            break
         else:
             print('Sorry, that item is not available')
 print(f'Your cart contains: {list(cart.keys())} ')
-confirm = input('Confirm your purchase? (yes/no)')
+confirm = input('Confirm your purchase? (yes/no): ')
 if confirm == 'yes':
     print(f'purchase confirmed! You have bought: {list(cart.keys())}')
