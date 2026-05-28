@@ -31,7 +31,7 @@ while True:
             print(f'You have left the {selected_store["name"]}.')
             break
         else:
-            print('Sorry, that item is not available')
+            print('Sorry, that item is not for sale. Please select a valid item or type "exit" to leave the store.')
     visit_again = input("Visit another store? (yes/no): ")
     if visit_again == 'no':
         break
@@ -40,6 +40,11 @@ total_cost = sum(cart.values())
 print(f'Total cost of your purchases is: {total_cost} gold pieces.')
 confirm = input('Confirm your purchase? (yes/no): ')
 if confirm == 'yes':
-    purse -= total_cost
-    print(f'purchase confirmed! You have bought: {list(cart.keys())}')
+    if total_cost > purse:
+        print(f'You do not have enough gold pieces to make this purchase')
+    else:
+        purse -= total_cost
+        print(f'Purchase confirmed! You have bought: {list(cart.keys())}')
     print(f'You have {purse} gold pieces left.')
+else:
+    print('Purchase cancelled. Your cart has been cleared.')
