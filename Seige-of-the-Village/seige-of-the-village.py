@@ -13,7 +13,7 @@ antiques = {'name':'Antique Shop','french castle':400, 'wooden grail':3, 'scythe
 pet_shop = {'name':'Pet Shop','blue parrot':10, 'white rabbit':5, 'newt': 2}
 
 cart = {}
-
+purse = 1000
 stores = [freelancers, antiques, pet_shop]
 for store in stores:
     print(f'Welcome to the {store['name']}! items for sale are: ')
@@ -34,6 +34,10 @@ for store in stores:
         else:
             print('Sorry, that item is not available')
 print(f'Your cart contains: {list(cart.keys())} ')
+total_cost = sum(cart.values())
+print(f'Total cost of your purchases is: {total_cost} gold pieces.')
 confirm = input('Confirm your purchase? (yes/no): ')
 if confirm == 'yes':
+    purse -= total_cost
     print(f'purchase confirmed! You have bought: {list(cart.keys())}')
+    print(f'You have {purse} gold pieces left.')
