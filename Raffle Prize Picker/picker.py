@@ -1,5 +1,5 @@
 import random
-print("Welcome to the Raffle!")
+print("Welcome to the Lottery!")
 names = []
 count = int(input("How many people are entering?: "))
 for i in range(count):
@@ -8,25 +8,50 @@ for i in range(count):
     else:
         print("Kindly enter your name (or type 'done' to finish): ")
         names.append(input(": ").lower())
-ticket_counts = {}
+tickets = {}
 for name in names:
-    ticket_counts[name] = int(input(f"Hey {name}, how many tickets do you want to buy?: "))
-    if ticket_counts[name] <= 0:
-        quit("Sorry, you can't buy zero or negative tickets.")
+    ticket_count = int(input(f"Hey {name}, how many tickets do you want?: "))
+    while ticket_count < 1:
+        print("Sorry, you need to buy at least 1 ticket.")
+        ticket_count = int(input(f"Hey {name}, how many tickets do you want?: "))
+    tickets[name] = []
+    for _ in range(ticket_count):
+        while True:
+            try:
+                number = int(input(f"Hey {name}, choose a number between 1-99: "))
+                if number < 1 or number > 99:
+                    print("Please choose a number between 1 and 99!")
+                    continue
+            except ValueError:
+                print("Please enter a valid number!")
+                continue
+            all_tickets = [t for lst in tickets.values() for t in lst]
+            if number in all_tickets:
+                print("Already taken! Please choose another number.")
+            else:
+                tickets[name].append(number)
+                break
 ticket_price = 100
-prize = sum(ticket_counts.values()) * ticket_price
+prize = ticket_price * sum(len(t) for t in tickets.values())
 prize1 = prize * 0.5
 prize2 = prize * 0.3
 prize3 = prize * 0.2
 prize = [prize1, prize2, prize3]
-tickets = {name: [random.randint(1, 100) for _ in range(ticket_counts[name])] for name in names}
-print(tickets)
+all_tickets = [t for lst in tickets.values() for t in lst]
+winning_number = random.choice(all_tickets)
 print(input("The lottery is now closed. The winners are being picked...(press enter to continue): "))
 for i in range(3):
-    winners = random.choice(names)
-    names.remove(winners)
+    all_tickets = [t for lst in tickets.values() for t in lst]
+    winning_number = random.choice(all_tickets)
+    print(f'🎱 Winning number: {winning_number}')
+    for name, numbers in tickets.items():
+        if winning_number in numbers:
+            winner = name
+            break
+    del tickets[winner]
     if i == 0:
-        print (f'{winners} You have won {prize[0]} the Grand prize(Your ticket number is {random.choice(tickets[winners])}!)')
+        print(f'{winner} won Grand Prize of ${prize1:.2f}')
     elif i == 1:
-        print (f'{winners} You have won {prize[1]} the Second prize(Your ticket number is {random.choice(tickets[winners])}!)')
-    else:        print (f'{winners} You have won {prize[2]} the Third prize(Your ticket number is {random.choice(tickets[winners])}!)')
+        print(f'{winner} won Second Prize of ${prize2:.2f}')
+    else:
+        print(f'{winner} won Third Prize of ${prize3:.2f}')
