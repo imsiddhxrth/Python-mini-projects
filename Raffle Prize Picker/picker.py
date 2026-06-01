@@ -1,5 +1,6 @@
 import random
-print("Welcome to the Lottery!")
+print("Welcome to the Lottery Simulator!")
+print("Each ticket costs $100. The more tickets you buy, the higher your chances of winning!")
 names = []
 count = int(input("How many people are entering?: "))
 for i in range(count):
@@ -32,13 +33,14 @@ for name in names:
                 tickets[name].append(number)
                 break
 ticket_price = 100
-prize = ticket_price * sum(len(t) for t in tickets.values())
-prize1 = prize * 0.5
-prize2 = prize * 0.3
-prize3 = prize * 0.2
+revenue = ticket_price * sum(len(t) for t in tickets.values())
+company_revenue = revenue * 0.3
+prize_pool = revenue * 0.7
+prize1 = prize_pool * 0.5
+prize2 = prize_pool * 0.3
+prize3 = prize_pool * 0.2
 prize = [prize1, prize2, prize3]
-all_tickets = [t for lst in tickets.values() for t in lst]
-winning_number = random.choice(all_tickets)
+total_tickets_sold = sum(len(t) for t in tickets.values())
 print(input("The lottery is now closed. The winners are being picked...(press enter to continue): "))
 for i in range(3):
     all_tickets = [t for lst in tickets.values() for t in lst]
@@ -55,3 +57,9 @@ for i in range(3):
         print(f'{winner} won Second Prize of ${prize2:.2f}')
     else:
         print(f'{winner} won Third Prize of ${prize3:.2f}')
+print("🏢 LOTTERY SIMULATOR - Results")
+print("----------------------------------")
+print(f"🎟️ Tickets Sold: {total_tickets_sold}")
+print(f"💰 Revenue: ${revenue:.2f}")
+print(f"🏆 Prize Pool: ${prize_pool:.2f}")
+print(f"📊 Company Profit: ${company_revenue:.2f}")
