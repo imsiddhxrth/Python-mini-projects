@@ -50,6 +50,7 @@ def send_message(sender_badge, recipient_badge=None):
     encrypted = encrypt(msg)
     save_message(recipient_badge, encrypted, msg, sender_badge)
     print('Message sent!')
+    log_action(sender_badge, f'Sent message to {recipient_badge}')
 
 def view_inbox(badge_number):
     try:
@@ -69,14 +70,9 @@ def view_inbox(badge_number):
         print(f"Time: {msg['timestamp']}")
         print(f"Encrypted: {msg['encrypted']}")
         print(f"Decrypted: {msg['decrypted']}")
-        print('-------------------')
-        decrypt_choice = input('Decrypt? (yes/no): ').lower()
-        if decrypt_choice == 'yes':
-            print(f"Decrypted: {decrypt(msg['encrypted'])}")
-            reply_choice = input('Reply? (yes/no): ').lower()
-            if reply_choice == 'yes':
-                send_message(badge_number, msg['from'])
-
+        reply_choice = input('Reply? (yes/no): ').lower()
+        if reply_choice == 'yes':
+            send_message(badge_number, msg['from'])
 
 def encrypt(msg):
     keys = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=~`[]{}|;:,.<>?'
@@ -111,6 +107,7 @@ def register():
     save_users(users)
     print(f"Your badge number is: {badge_number}")
     print('Registration successful')
+    log_action(badge_number, 'Registered')
 
 def login():
     users = load_users()
@@ -119,15 +116,112 @@ def login():
     user = users.get(badge_number)
     if user and user['password'] == password:
         print('Login successful')
+        log_action(badge_number, 'Logged in')
         return badge_number
     else:
         print('Invalid badge number or password')
         return None
+    
+def admin_login():
+    try:
+        with open('admins.json', 'r') as f:
+            admins = json.load(f)
+    except FileNotFoundError:
+        print('No admin accounts found!')
+        return None
+    admin_id = input('Enter Admin ID: ')
+    key = getpass('Enter Admin Key: ')
+    admin = admins.get(admin_id)
+    if admin and admin['key'] == key:
+        print('Admin login successful!')
+        return admin_id
+    else:
+        print('Invalid Admin ID or Key!')
+        return None
+
+def remove_user():
+    users = load_users()
+    badge_number = input('Enter badge number to remove: ')
+    if badge_number in users:
+        del users[badge_number]
+        save_users(users)
+        print('User removed successfully!')
+        log_action(badge_number, 'User removed')
+    else:
+        print('User not found!')
+
+def view_all_messages():
+    try:
+        with open('messages.json', 'r') as f:
+            messages = json.load(f)
+    except FileNotFoundError:
+        print('No messages found!')
+        return
+    for badge_number, msgs in messages.items():
+        print(f"\n--- Messages for {badge_number} ---")
+        for i, msg in enumerate(msgs):
+            print(f"\nMessage {i+1}:")
+            print(f"From: {msg.get('from', 'N/A')}")
+            print(f"Time: {msg['timestamp']}")
+            print(f"Encrypted: {msg['encrypted']}")
+            print(f"Decrypted: {msg['decrypted']}")
+
+def delete_messages():
+    try:
+        with open('messages.json', 'r') as f:
+            messages = json.load(f)
+    except FileNotFoundError:
+        print('No messages found!')
+        return
+    badge_number = input('Enter badge number to delete messages for: ')
+    if badge_number in messages:
+        del messages[badge_number]
+        with open('messages.json', 'w') as f:
+            json.dump(messages, f)
+        print('Messages deleted successfully!')
+    else:
+        print('User not found!')
+
+def log_action(badge_number, action):
+    try:
+        with open('logs.json', 'r') as f:
+            logs = json.load(f)
+    except FileNotFoundError:
+        logs = []
+    logs.append({
+        "badge_number": badge_number,
+        "action": action,
+        "timestamp": get_current_time()
+    })
+    with open('logs.json', 'w') as f:
+        json.dump(logs, f)
+
+def view_logs():
+    try:
+        with open('logs.json', 'r') as f:
+            logs = json.load(f)
+    except FileNotFoundError:
+        print('No logs found!')
+        return
+    for log in logs:
+        print(f"Time: {log['timestamp']} | {log['badge_number']} | {log['action']}")
+
+
+
+admin_menu = {
+    '1': 'Add User',
+    '2': 'Remove User',
+    '3': 'View All Messages',
+    '4': 'Delete Messages',
+    '5': 'View Logs',
+    '6': 'Exit'
+}
 
 start_menu = {
     '1': 'Login',
     '2': 'Register',
-    '3': 'Exit'
+    '3': 'Admin Login',
+    '4': 'Exit'
 }
 
 menu = {
@@ -158,7 +252,11 @@ def process_message(mode):
     return original_msg, result
 
 print('====== Ghostwire ======')
-while True:    
+while True:
+    is_admin = False
+    badge_number = None
+
+    # Start menu
     while True:
         for key, value in start_menu.items():
             print(f"{key}. {value}")
@@ -169,36 +267,64 @@ while True:
                 break
         elif choice == '2' or choice == 'Register':
             register()
-        elif choice == '3' or choice == 'Exit':
+        elif choice == '3' or choice == 'Admin Login':
+            admin_id = admin_login()
+            if admin_id:
+                is_admin = True
+                break
+        elif choice == '4' or choice == 'Exit':
             exit()
         else:
-             print('Invalid choice')
+            print('Invalid choice')
 
-    while True:
-        for key, value in menu.items():
-            print(f"{key}. {value}")
-        choice = input('Enter your choice: ').title()
-        if choice == '1' or choice == 'Encode':
-            while True:
-                original, result = process_message('encode')
-                if original == 'exit':
-                    break
-                print(result)
-                save = input('Save this message? (yes/no): ').lower()
-                if save == 'yes':
-                    save_message(badge_number, result, original)
-                    print('Message saved!')
-        elif choice == '2' or choice == 'Decode':
-            while True:
-                original, result = process_message('decode')
-                if original == 'exit':
-                    break
-                print(result)
-                save = input('Save this message? (yes/no): ').lower()
-                if save == 'yes':
-                    save_message(badge_number, result, original)
-                    print('Message saved!')
-        elif choice == '3' or choice == 'Inbox':
+    # Admin menu
+    if is_admin:
+        while True:
+            for key, value in admin_menu.items():
+                print(f"{key}. {value}")
+            choice = input('Enter your choice: ').title()
+            if choice == '1' or choice == 'Add User':
+                register()
+            elif choice == '2' or choice == 'Remove User':
+                remove_user()
+            elif choice == '3' or choice == 'View All Messages':
+                view_all_messages()
+            elif choice == '4' or choice == 'Delete Messages':
+                delete_messages()
+            elif choice == '5' or choice == 'View Logs':
+                view_logs()
+            elif choice == '6' or choice == 'Exit':
+                break
+            else:
+                print('Invalid choice')
+
+    # User menu
+    else:
+        while True:
+            for key, value in menu.items():
+                print(f"{key}. {value}")
+            choice = input('Enter your choice: ').title()
+            if choice == '1' or choice == 'Encode':
+                while True:
+                    original, result = process_message('encode')
+                    if original == 'exit':
+                        break
+                    print(result)
+                    save = input('Save this message? (yes/no): ').lower()
+                    if save == 'yes':
+                        save_message(badge_number, result, original)
+                        print('Message saved!')
+            elif choice == '2' or choice == 'Decode':
+                while True:
+                    original, result = process_message('decode')
+                    if original == 'exit':
+                        break
+                    print(result)
+                    save = input('Save this message? (yes/no): ').lower()
+                    if save == 'yes':
+                        save_message(badge_number, result, original)
+                        print('Message saved!')
+            elif choice == '3' or choice == 'Inbox':
                 while True:
                     for key, value in inbox_menu.items():
                         print(f"{key}. {value}")
@@ -213,7 +339,7 @@ while True:
                         break
                     else:
                         print('Invalid choice')
-        elif choice == '4' or choice == 'Exit':
-            break
-        else:
-            print('Invalid choice')
+            elif choice == '4' or choice == 'Exit':
+                break
+            else:
+                print('Invalid choice')
