@@ -4,22 +4,6 @@ from datetime import datetime
 
 def get_current_time():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
-    
-def save_message(badge_number, encrypted, decrypted):
-    try:
-        with open('messages.json', 'r') as f:
-            messages = json.load(f)
-    except FileNotFoundError:
-        messages = {}
-    if badge_number not in messages:
-        messages[badge_number] = []
-    messages[badge_number].append({
-        "encrypted": encrypted,
-        "decrypted": decrypted,
-        "timestamp": get_current_time()
-    })
-    with open('messages.json', 'w') as f:
-        json.dump(messages, f)
 
 def view_messages(badge_number):
     try:
@@ -38,6 +22,47 @@ def view_messages(badge_number):
         print(f"Decrypted: {msg['decrypted']}")
         print('-------------------')
 
+def save_message(badge_number, encrypted, decrypted, sender=None):
+    try:
+        with open('messages.json', 'r') as f:
+            messages = json.load(f)
+    except FileNotFoundError:
+        messages = {}
+    if badge_number not in messages:
+        messages[badge_number] = []
+    messages[badge_number].append({
+        "from": sender,
+        "encrypted": encrypted,
+        "decrypted": decrypted,
+        "timestamp": get_current_time()
+    })
+    with open('messages.json', 'w') as f:
+        json.dump(messages, f)
+
+def send_message(sender_badge):
+    users = load_users()
+    recipient_badge = input('Enter recipient badge number: ')
+    if recipient_badge not in users:
+        print('Recipient not found!')
+        return
+    msg = input('Enter the message to send: ')
+    encrypted = encrypt(msg)
+    save_message(recipient_badge, encrypted, msg, sender_badge)
+    print('Message sent!')
+
+
+def encrypt(msg):
+    keys = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=~`[]{}|;:,.<>?'
+    values = keys[-1] + keys[0:-1]
+    dict_encode = dict(zip(keys, values))
+    msg = msg.replace(' ', '_')
+    return ''.join([dict_encode.get(char, char) for char in msg])
+
+def decrypt(msg):
+    keys = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=~`[]{}|;:,.<>?'
+    values = keys[-1] + keys[0:-1]
+    dict_decode = dict(zip(values, keys))
+    return ''.join([dict_decode.get(char, char) for char in msg]).replace('_', ' ')
 
 def load_users():
     try:
@@ -81,26 +106,20 @@ start_menu = {
 menu = {
     '1': 'Encode',
     '2': 'Decode',
-    '3': 'View Messages',
-    '4': 'Exit'
+    '3': 'Send Messages',
+    '4': 'View Messages',
+    '5': 'Exit'
 }
 
 def process_message(mode):
-    keys = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=~`[]{}|;:,.<>?'
-    values = keys[-1] + keys[0:-1]
-    dict_encode = dict(zip(keys, values))
-    dict_decode = dict(zip(values, keys))
     msg = input('Enter the message (or type exit to go back): ')
     if msg.lower() == 'exit':
-        return 'exit'
+        return 'exit', None
     original_msg = msg
     if mode == 'encode':
-        msg = msg.replace(' ', '_')
-        result = ''.join([dict_encode.get(char, char) for char in msg if char != ' '])
-        result = result.replace(' ', '_')
+        result = encrypt(msg)
     elif mode == 'decode':
-        result = ''.join([dict_decode.get(char, char) for char in msg])
-        result = result.replace('_', ' ')
+        result = decrypt(msg)
     else:
         result = 'Invalid mode'
     return original_msg, result
@@ -146,9 +165,11 @@ while True:
                 if save == 'yes':
                     save_message(badge_number, result, original)
                     print('Message saved!')
-        elif choice == '3' or choice == 'View Messages':
+        elif choice == '3' or choice == 'Send Messages':
+            send_message(badge_number)
+        elif choice == '4' or choice == 'View Messages':
             view_messages(badge_number)
-        elif choice == '4' or choice == 'Exit':
+        elif choice == '5' or choice == 'Exit':
             break
         else:
             print('Invalid choice')
