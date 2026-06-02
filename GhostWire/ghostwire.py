@@ -133,10 +133,15 @@ start_menu = {
 menu = {
     '1': 'Encode',
     '2': 'Decode',
-    '3': 'Send Messages',
-    '4': 'Saved Messages',
-    '5': 'Inbox',
-    '6': 'Exit'
+    '3': 'Inbox',
+    '4': 'Exit'
+}
+
+inbox_menu = {
+    '1': 'Recent Messages',
+    '2': 'Send Message',
+    '3': 'Saved Messages',
+    '4': 'Back'
 }
 
 def process_message(mode):
@@ -193,13 +198,22 @@ while True:
                 if save == 'yes':
                     save_message(badge_number, result, original)
                     print('Message saved!')
-        elif choice == '3' or choice == 'Send Messages':
-            send_message(badge_number)
-        elif choice == '4' or choice == 'Saved Messages':
-            saved_messages(badge_number)
-        elif choice == '5' or choice == 'Inbox':
-            view_inbox(badge_number)
-        elif choice == '6' or choice == 'Exit':
+        elif choice == '3' or choice == 'Inbox':
+                while True:
+                    for key, value in inbox_menu.items():
+                        print(f"{key}. {value}")
+                    choice = input('Enter your choice: ').title()
+                    if choice == '1' or choice == 'Recent Messages':
+                        view_inbox(badge_number)
+                    elif choice == '2' or choice == 'Send Message':
+                        send_message(badge_number)
+                    elif choice == '3' or choice == 'Saved Messages':
+                        saved_messages(badge_number)
+                    elif choice == '4' or choice == 'Back':
+                        break
+                    else:
+                        print('Invalid choice')
+        elif choice == '4' or choice == 'Exit':
             break
         else:
             print('Invalid choice')
