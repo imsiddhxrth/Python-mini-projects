@@ -5,7 +5,7 @@ from datetime import datetime
 def get_current_time():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
 
-def view_messages(badge_number):
+def saved_messages(badge_number):
     try:
         with open('messages.json', 'r') as f:
             messages = json.load(f)
@@ -39,9 +39,10 @@ def save_message(badge_number, encrypted, decrypted, sender=None):
     with open('messages.json', 'w') as f:
         json.dump(messages, f)
 
-def send_message(sender_badge):
+def send_message(sender_badge, recipient_badge=None):
     users = load_users()
-    recipient_badge = input('Enter recipient badge number: ')
+    if recipient_badge is None:
+        recipient_badge = input('Enter recipient badge number: ')
     if recipient_badge not in users:
         print('Recipient not found!')
         return
@@ -49,6 +50,32 @@ def send_message(sender_badge):
     encrypted = encrypt(msg)
     save_message(recipient_badge, encrypted, msg, sender_badge)
     print('Message sent!')
+
+def view_inbox(badge_number):
+    try:
+        with open('messages.json', 'r') as f:
+            messages = json.load(f)
+    except FileNotFoundError:
+        print('No messages found!')
+        return
+    if badge_number not in messages:
+        print('No messages found!')
+        return
+    for i, msg in enumerate(messages[badge_number]):
+        if msg['from'] is None:
+            continue
+        print(f"\n--- Message {i+1} ---")
+        print(f"From: {msg['from']}")
+        print(f"Time: {msg['timestamp']}")
+        print(f"Encrypted: {msg['encrypted']}")
+        print(f"Decrypted: {msg['decrypted']}")
+        print('-------------------')
+        decrypt_choice = input('Decrypt? (yes/no): ').lower()
+        if decrypt_choice == 'yes':
+            print(f"Decrypted: {decrypt(msg['encrypted'])}")
+            reply_choice = input('Reply? (yes/no): ').lower()
+            if reply_choice == 'yes':
+                send_message(badge_number, msg['from'])
 
 
 def encrypt(msg):
@@ -107,8 +134,9 @@ menu = {
     '1': 'Encode',
     '2': 'Decode',
     '3': 'Send Messages',
-    '4': 'View Messages',
-    '5': 'Exit'
+    '4': 'Saved Messages',
+    '5': 'Inbox',
+    '6': 'Exit'
 }
 
 def process_message(mode):
@@ -167,9 +195,11 @@ while True:
                     print('Message saved!')
         elif choice == '3' or choice == 'Send Messages':
             send_message(badge_number)
-        elif choice == '4' or choice == 'View Messages':
-            view_messages(badge_number)
-        elif choice == '5' or choice == 'Exit':
+        elif choice == '4' or choice == 'Saved Messages':
+            saved_messages(badge_number)
+        elif choice == '5' or choice == 'Inbox':
+            view_inbox(badge_number)
+        elif choice == '6' or choice == 'Exit':
             break
         else:
             print('Invalid choice')
