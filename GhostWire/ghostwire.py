@@ -1,4 +1,44 @@
 import json
+from getpass import getpass
+from datetime import datetime
+
+def get_current_time():
+    return datetime.now().strftime("%Y-%m-%d %H:%M")
+    
+def save_message(badge_number, encrypted, decrypted):
+    try:
+        with open('messages.json', 'r') as f:
+            messages = json.load(f)
+    except FileNotFoundError:
+        messages = {}
+    if badge_number not in messages:
+        messages[badge_number] = []
+    messages[badge_number].append({
+        "encrypted": encrypted,
+        "decrypted": decrypted,
+        "timestamp": get_current_time()
+    })
+    with open('messages.json', 'w') as f:
+        json.dump(messages, f)
+
+def view_messages(badge_number):
+    try:
+        with open('messages.json', 'r') as f:
+            messages = json.load(f)
+    except FileNotFoundError:
+        print('No messages found!')
+        return
+    if badge_number not in messages:
+        print('No messages found!')
+        return
+    for i, msg in enumerate(messages[badge_number]):
+        print(f"\n--- Message {i+1} ---")
+        print(f"Time: {msg['timestamp']}")
+        print(f"Encrypted: {msg['encrypted']}")
+        print(f"Decrypted: {msg['decrypted']}")
+        print('-------------------')
+
+
 def load_users():
     try:
         with open('users.json', 'r') as f:
@@ -23,14 +63,14 @@ def register():
 def login():
     users = load_users()
     badge_number = input('Enter badge number: ')
-    password = input('Enter password: ')
+    password = getpass('Enter password: ')
     user = users.get(badge_number)
     if user and user['password'] == password:
         print('Login successful')
-        return True
+        return badge_number
     else:
         print('Invalid badge number or password')
-        return False
+        return None
 
 start_menu = {
     '1': 'Login',
@@ -41,7 +81,8 @@ start_menu = {
 menu = {
     '1': 'Encode',
     '2': 'Decode',
-    '3': 'Exit'
+    '3': 'View Messages',
+    '4': 'Exit'
 }
 
 def process_message(mode):
@@ -52,6 +93,7 @@ def process_message(mode):
     msg = input('Enter the message (or type exit to go back): ')
     if msg.lower() == 'exit':
         return 'exit'
+    original_msg = msg
     if mode == 'encode':
         msg = msg.replace(' ', '_')
         result = ''.join([dict_encode.get(char, char) for char in msg if char != ' '])
@@ -61,8 +103,8 @@ def process_message(mode):
         result = result.replace('_', ' ')
     else:
         result = 'Invalid mode'
-    return result
-    
+    return original_msg, result
+
 print('====== Ghostwire ======')
 while True:    
     while True:
@@ -70,7 +112,8 @@ while True:
             print(f"{key}. {value}")
         choice = input('Enter your choice: ').title()
         if choice == '1' or choice == 'Login':
-            if login():
+            badge_number = login()
+            if badge_number:
                 break
         elif choice == '2' or choice == 'Register':
             register()
@@ -85,17 +128,27 @@ while True:
         choice = input('Enter your choice: ').title()
         if choice == '1' or choice == 'Encode':
             while True:
-                result = process_message('encode')
-                if result == 'exit':
+                original, result = process_message('encode')
+                if original == 'exit':
                     break
                 print(result)
+                save = input('Save this message? (yes/no): ').lower()
+                if save == 'yes':
+                    save_message(badge_number, result, original)
+                    print('Message saved!')
         elif choice == '2' or choice == 'Decode':
             while True:
-                result = process_message('decode')
-                if result == 'exit':
+                original, result = process_message('decode')
+                if original == 'exit':
                     break
                 print(result)
-        elif choice == '3' or choice == 'Exit':
+                save = input('Save this message? (yes/no): ').lower()
+                if save == 'yes':
+                    save_message(badge_number, result, original)
+                    print('Message saved!')
+        elif choice == '3' or choice == 'View Messages':
+            view_messages(badge_number)
+        elif choice == '4' or choice == 'Exit':
             break
         else:
             print('Invalid choice')
