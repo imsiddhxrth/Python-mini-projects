@@ -222,7 +222,12 @@ def view_logs():
     for log in logs:
         print(f"Time: {log['timestamp']} | {log['badge_number']} | {log['action']}")
 
-
+start_menu = {
+    '1': 'Login',
+    '2': 'Register',
+    '3': 'Admin Login',
+    '4': 'Exit'
+}
 
 admin_menu = {
     '1': 'Add User',
@@ -234,11 +239,12 @@ admin_menu = {
     '7': 'Exit'
 }
 
-start_menu = {
-    '1': 'Login',
-    '2': 'Register',
-    '3': 'Admin Login',
-    '4': 'Exit'
+supervisor_menu = {
+    '1': 'Encode',
+    '2': 'Decode',
+    '3': 'Inbox',
+    '4': 'View Logs',
+    '5': 'Exit'
 }
 
 menu = {
@@ -320,8 +326,12 @@ while True:
 
     # User menu
     else:
+        if role == 'Supervisor':
+            active_menu = supervisor_menu
+        else:
+            active_menu = menu
         while True:
-            for key, value in menu.items():
+            for key, value in active_menu.items():
                 print(f"{key}. {value}")
             choice = input('Enter your choice: ').title()
             if choice == '1' or choice == 'Encode':
@@ -359,7 +369,12 @@ while True:
                         break
                     else:
                         print('Invalid choice')
-            elif choice == '4' or choice == 'Exit':
+            elif choice == '4' or choice == 'View Logs':
+                if role == 'Supervisor':
+                    view_logs()
+                else:
+                    break  # Employee exits on 4
+            elif choice == '5' or choice == 'Exit':
                 break
             else:
                 print('Invalid choice')
