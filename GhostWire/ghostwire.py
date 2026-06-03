@@ -93,6 +93,22 @@ def load_users():
             return json.load(f)
     except FileNotFoundError:
         return {}
+    
+def change_role():
+    users = load_users()
+    badge_number = input('Enter badge number: ')
+    if badge_number not in users:
+        print('User not found!')
+        return
+    print(f"Current role: {users[badge_number].get('role', 'Employee')}")
+    new_role = input('Enter new role (Employee/Supervisor): ').title()
+    if new_role not in ['Employee', 'Supervisor']:
+        print('Invalid role!')
+        return
+    users[badge_number]['role'] = new_role
+    save_users(users)
+    print(f'Role updated to {new_role}!')
+    log_action(badge_number, f'Role changed to {new_role}')
 
 def save_users(users):
     with open('users.json', 'w') as f:
@@ -103,7 +119,7 @@ def register():
     badge_number = f"EMP-{str(len(users) + 1).zfill(3)}"
     name = input('Enter name: ')
     password = input('Enter password: ')
-    users[badge_number] = {"name": name, "password": password}
+    users[badge_number] = {"name": name, "password": password, "role": "Employee"}
     save_users(users)
     print(f"Your badge number is: {badge_number}")
     print('Registration successful')
@@ -117,7 +133,7 @@ def login():
     if user and user['password'] == password:
         print('Login successful')
         log_action(badge_number, 'Logged in')
-        return badge_number
+        return badge_number, user.get('role', 'Employee')
     else:
         print('Invalid badge number or password')
         return None
@@ -214,7 +230,8 @@ admin_menu = {
     '3': 'View All Messages',
     '4': 'Delete Messages',
     '5': 'View Logs',
-    '6': 'Exit'
+    '6': 'Change User Role',
+    '7': 'Exit'
 }
 
 start_menu = {
@@ -262,8 +279,9 @@ while True:
             print(f"{key}. {value}")
         choice = input('Enter your choice: ').title()
         if choice == '1' or choice == 'Login':
-            badge_number = login()
-            if badge_number:
+            result = login()
+            if result:
+                badge_number, role = result
                 break
         elif choice == '2' or choice == 'Register':
             register()
@@ -293,7 +311,9 @@ while True:
                 delete_messages()
             elif choice == '5' or choice == 'View Logs':
                 view_logs()
-            elif choice == '6' or choice == 'Exit':
+            elif choice == '6' or choice == 'Change User Role':
+                change_role()
+            elif choice == '7' or choice == 'Exit':
                 break
             else:
                 print('Invalid choice')
