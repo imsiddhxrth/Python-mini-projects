@@ -34,6 +34,7 @@ def log_action(badge_number, action):
         json.dump(logs, f)
 
 def handle_client(conn, addr):
+    badge_number = None
     print(f'New connection from {addr}')
     try:
         credentials = conn.recv(1024).decode()
@@ -48,6 +49,24 @@ def handle_client(conn, addr):
                 connected_clients[badge_number] = conn
                 log_action(badge_number, 'Logged in')
                 print(f'{badge_number} logged in')
+                # message loop goes HERE inside if block
+                while True:
+                    try:
+                        msg = conn.recv(1024).decode()
+                        if not msg:
+                            break
+                        if msg.startswith('MSG:'):
+                            _, recipient, message = msg.split(':', 2)
+                            if recipient in connected_clients:
+                                connected_clients[recipient].send(
+                                    f'FROM:{badge_number}:{message}'.encode()
+                                )
+                                log_action(badge_number, f'Sent message to {recipient}')
+                                print(f'{badge_number} → {recipient}: {message}')
+                            else:
+                                conn.send('USER_NOT_FOUND'.encode())
+                    except:
+                        break
             else:
                 conn.send('AUTH_FAIL'.encode())
                 log_action(badge_number, 'Failed login attempt')
@@ -66,6 +85,11 @@ def handle_client(conn, addr):
 
     except Exception as e:
         print(f'Error: {e}')
+    finally:
+        if badge_number and badge_number in connected_clients:
+            del connected_clients[badge_number]
+            log_action(badge_number, 'Disconnected')
+            print(f'{badge_number} disconnected')
         conn.close()
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

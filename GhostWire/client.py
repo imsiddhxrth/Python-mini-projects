@@ -1,4 +1,5 @@
 import socket
+import threading
 from getpass import getpass
 
 
@@ -6,6 +7,25 @@ client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(('127.0.0.1', 5000))
 print('Connected to GhostWire!')
 
+def receive_messages():
+    while True:
+        try:
+            msg = client.recv(1024).decode()
+            if msg.startswith('FROM:'):
+                _, sender, message = msg.split(':', 2)
+                print(f'\nMessage from {sender}: {message}')
+            else:
+                print(f'\n{msg}')
+        except:
+            print('Connection lost.')
+            break
+def send_messages():
+    while True:
+        recipient = input('Send to (or exit): ')
+        if recipient.lower() == 'exit':
+            break
+        message = input('Message: ')
+        client.send(f'MSG:{recipient}:{message}'.encode())
 start_menu = {
     '1': 'Login',
     '2': 'Register',
@@ -32,11 +52,10 @@ elif Start_menu == '1' or Start_menu == 'login':
     if response.startswith('AUTH_SUCCESS'):
         role = response.split(':')[1]
         print(f'Login successful! Role: {role}')
-        while True:
-            msg = input('Enter message: ')
-            if msg.lower() == 'exit':
-                break
-            client.send(msg.encode())
+        threading.Thread(target=receive_messages, daemon=True).start()
+        sending_thread = threading.Thread(target=send_messages)
+        sending_thread.start()
+        sending_thread.join()
     else:
         print('Login failed. Please check your credentials.')
 elif Start_menu == '3' or Start_menu == 'exit':
