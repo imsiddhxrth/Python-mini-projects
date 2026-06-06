@@ -7,25 +7,41 @@ client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(('127.0.0.1', 5000))
 print('Connected to GhostWire!')
 
-def receive_messages():
-    while True:
-        try:
-            msg = client.recv(1024).decode()
-            if msg.startswith('FROM:'):
-                _, sender, message = msg.split(':', 2)
-                print(f'\nMessage from {sender}: {message}')
-            else:
-                print(f'\n{msg}')
-        except:
-            print('Connection lost.')
-            break
+def encrypt(msg):
+    keys = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=~`[]{}|;:,.<>?'
+    values = keys[-1] + keys[0:-1]
+    dict_encode = dict(zip(keys, values))
+    msg = msg.replace(' ', '_')
+    return ''.join([dict_encode.get(char, char) for char in msg])
+
+def decrypt(msg):
+    keys = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=~`[]{}|;:,.<>?'
+    values = keys[-1] + keys[0:-1]
+    dict_decode = dict(zip(values, keys))
+    return ''.join([dict_decode.get(char, char) for char in msg]).replace('_', ' ')
+
 def send_messages():
     while True:
         recipient = input('Send to (or exit): ')
         if recipient.lower() == 'exit':
             break
         message = input('Message: ')
-        client.send(f'MSG:{recipient}:{message}'.encode())
+        encrypted_message = encrypt(message)
+        client.send(f'MSG:{recipient}:{encrypted_message}'.encode())
+
+def receive_messages():
+    while True:
+        try:
+            msg = client.recv(1024).decode()
+            if msg.startswith('FROM:'):
+                _, sender, message = msg.split(':', 2)
+                decrypted_message = decrypt(message)
+                print(f'\nMessage from {sender}: {decrypted_message}')
+            else:
+                print(f'\n{msg}')
+        except:
+            print('Connection lost.')
+            break
 start_menu = {
     '1': 'Login',
     '2': 'Register',

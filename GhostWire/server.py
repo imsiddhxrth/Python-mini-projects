@@ -45,11 +45,10 @@ def handle_client(conn, addr):
             users = load_users()
             user = users.get(badge_number)
             if user and user['password'] == password:
-                conn.send(f'AUTH_SUCCESS:{user["role"]}'.encode())
+                conn.send(f'AUTH_SUCCESS:{user.get("role", "Employee")}'.encode())
                 connected_clients[badge_number] = conn
                 log_action(badge_number, 'Logged in')
                 print(f'{badge_number} logged in')
-                # message loop goes HERE inside if block
                 while True:
                     try:
                         msg = conn.recv(1024).decode()
