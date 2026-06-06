@@ -39,7 +39,7 @@ def handle_client(conn, addr):
     try:
         credentials = conn.recv(1024).decode()
         action, data = credentials.split(':', 1)
-        
+
         if action == 'LOGIN':
             badge_number, password = data.split(':')
             users = load_users()
@@ -81,6 +81,68 @@ def handle_client(conn, addr):
             conn.send(f'REGISTER_SUCCESS:{badge_number}'.encode())
             log_action(badge_number, 'Registered')
             print(f'New user registered: {badge_number}')
+
+        elif action == 'ADMIN_LOGIN':
+            admin_id, key = data.split(':')
+            try:
+                with open('admins.json', 'r') as f:
+                    admins = json.load(f)
+            except FileNotFoundError:
+                conn.send('AUTH_FAIL'.encode())
+                return
+            admin = admins.get(admin_id)
+            if admin and admin['key'] == key:
+                conn.send('ADMIN_AUTH_SUCCESS'.encode())
+                log_action(admin_id, 'Admin logged in')
+                print(f'Admin {admin_id} logged in')
+                while True:
+                    try:
+                        cmd = conn.recv(1024).decode()
+                        if not cmd:
+                            break
+                        if cmd == 'ADMIN_CMD:LIST_USERS':
+                            users = list(connected_clients.keys())
+                            conn.send(f'USERS:{",".join(users)}'.encode())
+                        elif cmd.startswith('ADMIN_CMD:KICK:'):
+                            target = cmd.split(':')[2]
+                            if target in connected_clients:
+                                connected_clients[target].send('KICKED'.encode())
+                                del connected_clients[target]
+                                conn.send(f'KICKED:{target}'.encode())
+                            else:
+                                conn.send('USER_NOT_FOUND'.encode())
+                        elif cmd == 'ADMIN_CMD:VIEW_LOGS':
+                            try:
+                                with open('logs.json', 'r') as f:
+                                    logs = json.load(f)
+                                conn.send(f'LOGS:{json.dumps(logs)}'.encode())
+                            except FileNotFoundError:
+                                conn.send('NO_LOGS'.encode())
+                        elif cmd.startswith('ADMIN_CMD:BROADCAST:'):
+                            message = cmd.split(':', 2)[2]
+                            for badge, c in connected_clients.items():
+                                c.send(f'BROADCAST:{message}'.encode())
+                            log_action(admin_id, 'Broadcasted message')
+                            conn.send('BROADCAST_SENT'.encode())
+                        elif cmd.startswith('ADMIN_CMD:PRIVATE_MSG:'):
+                            _, _, recipient, message = cmd.split(':', 3)
+                            if recipient in connected_clients:
+                                connected_clients[recipient].send(
+                                    f'PRIVATE_FROM:{admin_id}:{message}'.encode()
+                                )
+                                log_action(admin_id, f'Sent private message to {recipient}')
+                                conn.send('MESSAGE_SENT'.encode())
+                            else:
+                                conn.send('USER_NOT_FOUND'.encode())
+                        else:
+                            conn.send('INVALID_CMD'.encode())
+                    except:
+                        break
+            else:
+                conn.send('AUTH_FAIL'.encode())
+                log_action(admin_id, 'Failed admin login attempt')
+                conn.close()
+                return
 
     except Exception as e:
         print(f'Error: {e}')
