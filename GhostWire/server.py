@@ -45,8 +45,13 @@ def handle_client(conn, addr):
             users = load_users()
             user = users.get(badge_number)
             if user and user['password'] == password:
-                conn.send(f'AUTH_SUCCESS:{user.get("role", "Employee")}'.encode())
-                connected_clients[badge_number] = conn
+                role = user.get('role', 'Employee')
+                conn.send(f'AUTH_SUCCESS:{role}'.encode())
+                connected_clients[badge_number] = {
+                    'socket': conn,
+                    'role': role,
+                    'status': 'Online'
+                }
                 log_action(badge_number, 'Logged in')
                 print(f'{badge_number} logged in')
                 while True:
@@ -57,16 +62,16 @@ def handle_client(conn, addr):
                         if msg.startswith('MSG:'):
                             _, recipient, message = msg.split(':', 2)
                             if recipient in connected_clients:
-                                connected_clients[recipient].send(
-                                f'FROM:{badge_number}:{message}'.encode()
+                                connected_clients[recipient]['socket'].send(
+                                    f'FROM:{badge_number}:{message}'.encode()
                                 )
                                 log_action(badge_number, f'Sent message to {recipient}')
                                 print(f'{badge_number} → {recipient}: {message}')
                             else:
                                 conn.send('USER_NOT_FOUND'.encode())
                         elif msg == 'GET_USERS':
-                            users = list(connected_clients.keys())
-                            conn.send(f'USERS:{",".join(users)}'.encode())
+                            users_list = [f"{b}|{connected_clients[b]['role']}" for b in connected_clients]
+                            conn.send(f'USERS:{",".join(users_list)}'.encode())
                     except:
                         break
             else:
@@ -104,12 +109,12 @@ def handle_client(conn, addr):
                         if not cmd:
                             break
                         if cmd == 'ADMIN_CMD:LIST_USERS':
-                            users = list(connected_clients.keys())
-                            conn.send(f'USERS:{",".join(users)}'.encode())
+                            users_list = [f"{b}|{connected_clients[b]['role']}" for b in connected_clients]
+                            conn.send(f'USERS:{",".join(users_list)}'.encode())
                         elif cmd.startswith('ADMIN_CMD:KICK:'):
                             target = cmd.split(':')[2]
                             if target in connected_clients:
-                                connected_clients[target].send('KICKED'.encode())
+                                connected_clients[target]['socket'].send('KICKED'.encode())
                                 del connected_clients[target]
                                 conn.send(f'KICKED:{target}'.encode())
                             else:
@@ -123,14 +128,14 @@ def handle_client(conn, addr):
                                 conn.send('NO_LOGS'.encode())
                         elif cmd.startswith('ADMIN_CMD:BROADCAST:'):
                             message = cmd.split(':', 2)[2]
-                            for badge, c in connected_clients.items():
-                                c.send(f'BROADCAST:{message}'.encode())
+                            for badge, data in connected_clients.items():
+                                data['socket'].send(f'BROADCAST:{message}'.encode())
                             log_action(admin_id, 'Broadcasted message')
                             conn.send('BROADCAST_SENT'.encode())
                         elif cmd.startswith('ADMIN_CMD:PRIVATE_MSG:'):
                             _, _, recipient, message = cmd.split(':', 3)
                             if recipient in connected_clients:
-                                connected_clients[recipient].send(
+                                connected_clients[recipient]['socket'].send(
                                     f'PRIVATE_FROM:{admin_id}:{message}'.encode()
                                 )
                                 log_action(admin_id, f'Sent private message to {recipient}')
