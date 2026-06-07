@@ -50,7 +50,8 @@ def handle_client(conn, addr):
                 connected_clients[badge_number] = {
                     'socket': conn,
                     'role': role,
-                    'status': 'Online'
+                    'status': 'Online',
+                    'last_seen': get_current_time()
                 }
                 log_action(badge_number, 'Logged in')
                 print(f'{badge_number} logged in')
@@ -59,6 +60,7 @@ def handle_client(conn, addr):
                         msg = conn.recv(1024).decode()
                         if not msg:
                             break
+                        connected_clients[badge_number]['last_seen'] = get_current_time()
                         if msg.startswith('MSG:'):
                             _, recipient, message = msg.split(':', 2)
                             if recipient in connected_clients:
@@ -70,7 +72,10 @@ def handle_client(conn, addr):
                             else:
                                 conn.send('USER_NOT_FOUND'.encode())
                         elif msg == 'GET_USERS':
-                            users_list = [f"{b}|{connected_clients[b]['role']}" for b in connected_clients]
+                            users_list = [
+                                f"{b}|{connected_clients[b]['role']}|{connected_clients[b]['status']}|{connected_clients[b]['last_seen']}"
+                                for b in connected_clients
+                            ]
                             conn.send(f'USERS:{",".join(users_list)}'.encode())
                     except:
                         break
@@ -109,7 +114,10 @@ def handle_client(conn, addr):
                         if not cmd:
                             break
                         if cmd == 'ADMIN_CMD:LIST_USERS':
-                            users_list = [f"{b}|{connected_clients[b]['role']}" for b in connected_clients]
+                            users_list = [
+                                f"{b}|{connected_clients[b]['role']}|{connected_clients[b]['status']}|{connected_clients[b]['last_seen']}"
+                                for b in connected_clients
+                            ]
                             conn.send(f'USERS:{",".join(users_list)}'.encode())
                         elif cmd.startswith('ADMIN_CMD:KICK:'):
                             target = cmd.split(':')[2]
@@ -156,6 +164,10 @@ def handle_client(conn, addr):
         print(f'Error: {e}')
     finally:
         if badge_number and badge_number in connected_clients:
+            users = load_users()
+            if badge_number in users:
+                users[badge_number]['last_seen'] = get_current_time()
+                save_users(users)
             del connected_clients[badge_number]
             log_action(badge_number, 'Disconnected')
             print(f'{badge_number} disconnected')

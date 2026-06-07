@@ -9,7 +9,6 @@ client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(('127.0.0.1', 5000))
 
 users_queue = queue.Queue()
-current_chat = None
 
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -69,11 +68,15 @@ def admin_commands():
         if cmd == '1' or cmd.lower() == 'list online users':
             client.send('ADMIN_CMD:LIST_USERS'.encode())
             response = client.recv(1024).decode()
-            users = response.split(':')[1].split(',')
+            raw_users = response.split(':')[1].split(',')
             print('\nOnline users:')
-            for u in users:
+            for u in raw_users:
                 parts = u.split('|')
-                print(f'  {parts[0]}  |  {parts[1] if len(parts) > 1 else "Unknown"}')
+                badge = parts[0] if len(parts) > 0 else 'Unknown'
+                role = parts[1] if len(parts) > 1 else 'Unknown'
+                status = parts[2] if len(parts) > 2 else 'Unknown'
+                last_seen = parts[3] if len(parts) > 3 else 'Unknown'
+                print(f'  {badge}  |  {role}  |  {status}  |  {last_seen}')
             input('\nPress Enter to continue...')
         elif cmd == '2' or cmd.lower() == 'broadcast message':
             message = input('Broadcast message (or /back): ')
@@ -157,15 +160,20 @@ elif Start_menu == '1' or Start_menu == 'login':
             for u in raw_users:
                 parts = u.split('|')
                 if parts[0] and parts[0] != badge_number:
-                    users.append({'badge': parts[0], 'role': parts[1] if len(parts) > 1 else 'Unknown'})
+                    users.append({
+                        'badge': parts[0],
+                        'role': parts[1] if len(parts) > 1 else 'Unknown',
+                        'status': parts[2] if len(parts) > 2 else 'Unknown',
+                        'last_seen': parts[3] if len(parts) > 3 else 'Unknown'
+                    })
 
             print('================================')
-            print(f'   GHOSTWIRE  |  {badge_number}  |  {role}')
+            print(f'  {badge_number}  |  {role}  |  Online')
             print('================================')
             if not users:
                 print('No users online.')
-            for i, user in enumerate(users):
-                print(f'[{i+1}] {user["badge"]}  |  {user["role"]}')
+            for user in users:
+                print(f'  {user["badge"]}  |  {user["role"]}  |  {user["status"]}  |  {user["last_seen"]}')
             print('--------------------------------')
             print('/exit to disconnect')
 
@@ -215,4 +223,5 @@ else:
     client.close()
     exit()
 
+client.close()
 client.close()
