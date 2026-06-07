@@ -1,12 +1,14 @@
 import json
+import queue
 import socket
 import threading
 from getpass import getpass
 
-
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(('127.0.0.1', 5000))
 print('Connected to GhostWire!')
+
+users_queue = queue.Queue()
 
 def encrypt(msg):
     keys = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=~`[]{}|;:,.<>?'
@@ -21,29 +23,21 @@ def decrypt(msg):
     dict_decode = dict(zip(values, keys))
     return ''.join([dict_decode.get(char, char) for char in msg]).replace('_', ' ')
 
-def send_messages():
-    while True:
-        recipient = input('Send to (or exit): ')
-        if recipient.lower() == 'exit':
-            break
-        message = input('Message: ')
-        encrypted_message = encrypt(message)
-        client.send(f'MSG:{recipient}:{encrypted_message}'.encode())
-
 def receive_messages():
     while True:
         try:
             msg = client.recv(1024).decode()
             if msg.startswith('FROM:'):
                 _, sender, message = msg.split(':', 2)
-                decrypted_message = decrypt(message)
-                print(f'\nMessage from {sender}: {decrypted_message}')
+                print(f'\nMessage from {sender}: {decrypt(message)}')
             elif msg.startswith('BROADCAST:'):
                 message = msg.split(':', 1)[1]
-                print(f'BROADCAST FROM ADMIN: {message}')
+                print(f'\nBROADCAST FROM ADMIN: {message}')
             elif msg.startswith('PRIVATE_FROM:'):
                 _, sender, message = msg.split(':', 2)
-                print(f'{sender}: {message}')
+                print(f'\n{sender}: {message}')
+            elif msg.startswith('USERS:'):
+                users_queue.put(msg)
             else:
                 print(f'\n{msg}')
         except:
@@ -124,9 +118,37 @@ elif Start_menu == '1' or Start_menu == 'login':
         role = response.split(':')[1]
         print(f'Login successful! Role: {role}')
         threading.Thread(target=receive_messages, daemon=True).start()
-        sending_thread = threading.Thread(target=send_messages)
-        sending_thread.start()
-        sending_thread.join()
+
+        while True:
+            client.send('GET_USERS'.encode())
+            try:
+                users_response = users_queue.get(timeout=5)
+            except queue.Empty:
+                print('Could not fetch users, retrying...')
+                continue
+            users = users_response.split(':')[1].split(',')
+            users = [u for u in users if u and u != badge_number]
+
+            print('\nOnline Users:')
+            if not users:
+                print('No users online.')
+            for i, user in enumerate(users):
+                print(f'{i+1}. {user}')
+
+            choice = input('\nSelect user to chat with (or exit): ')
+            if choice.lower() == 'exit':
+                break
+            selected = choice.upper()
+            if selected not in users:
+                print('User not found!')
+                continue
+            print(f'\n--- Chat with {selected} (type back to return) ---')
+            while True:
+                message = input('You: ')
+                if message.lower() == 'back':
+                    break
+                encrypted = encrypt(message)
+                client.send(f'MSG:{selected}:{encrypted}'.encode())
     else:
         print('Login failed. Please check your credentials.')
 elif Start_menu == '3' or Start_menu == 'admin login':

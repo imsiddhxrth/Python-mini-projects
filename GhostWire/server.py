@@ -58,12 +58,15 @@ def handle_client(conn, addr):
                             _, recipient, message = msg.split(':', 2)
                             if recipient in connected_clients:
                                 connected_clients[recipient].send(
-                                    f'FROM:{badge_number}:{message}'.encode()
+                                f'FROM:{badge_number}:{message}'.encode()
                                 )
                                 log_action(badge_number, f'Sent message to {recipient}')
                                 print(f'{badge_number} → {recipient}: {message}')
                             else:
                                 conn.send('USER_NOT_FOUND'.encode())
+                        elif msg == 'GET_USERS':
+                            users = list(connected_clients.keys())
+                            conn.send(f'USERS:{",".join(users)}'.encode())
                     except:
                         break
             else:
